@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>動物預覽</title>
+  <style>
+    :root { --bg: #FFF3F8; --card: #fff; --ink: #4A3F55; --ink2: #8A7F96; --line: #F2E2EA; --shadow: 0 6px 18px rgba(200,120,160,.14); }
+    @media (prefers-color-scheme: dark) { :root { --bg: #221D2E; --card: #322B42; --ink: #F4ECFA; --ink2: #B6A9C6; --line: #413858; --shadow: 0 6px 18px rgba(0,0,0,.3); } }
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    body { margin: 0; background: var(--bg); color: var(--ink); font-family: -apple-system, "PingFang TC", "Noto Sans TC", sans-serif; }
+    main { max-width: 760px; margin: 0 auto; padding: calc(env(safe-area-inset-top) + 16px) 16px 40px; }
+    h1 { font-size: 24px; margin: 0 0 4px; }
+    .lead { color: var(--ink2); font-size: 14px; margin: 0 0 8px; }
+    .prog { font-size: 13px; color: var(--ink2); }
+    h2 { display: flex; align-items: center; gap: 8px; font-size: 18px; margin: 24px 4px 10px; }
+    h2 .dot { width: 12px; height: 12px; border-radius: 50%; }
+    h2 small { color: var(--ink2); font-weight: 600; font-size: 13px; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 10px; }
+    .mon { background: var(--card); border-radius: 20px; padding: 6px 6px 8px; text-align: center; box-shadow: var(--shadow); border: 2.5px solid transparent; font: inherit; color: inherit; cursor: pointer; }
+    .mon.rare { border-color: #CDE8FF; } .mon.epic { border-color: #E3D6FF; } .mon.legend { border-color: #FFE7A0; }
+    .pic { aspect-ratio: 1; border-radius: 16px; background: var(--bg); display: grid; place-items: center; overflow: hidden; }
+    .pic img { width: 100%; height: 100%; object-fit: contain; }
+    .nm { font-size: 12px; font-weight: 800; margin-top: 4px; }
+    .spin { width: 24px; height: 24px; border-radius: 50%; border: 3px solid var(--line); border-top-color: #FF9EC1; animation: sp 1s linear infinite; }
+    @keyframes sp { to { transform: rotate(360deg); } }
+    .modal { position: fixed; inset: 0; background: rgba(60,30,60,.4); display: none; align-items: flex-end; justify-content: center; z-index: 10; }
+    .modal.on { display: flex; }
+    .sheet { width: 100%; max-width: 560px; background: var(--bg); border-radius: 28px 28px 0 0; padding: 16px 16px calc(env(safe-area-inset-bottom) + 20px); }
+    .sheet h3 { margin: 0; font-size: 21px; }
+    .badge { display: inline-block; padding: 3px 12px; border-radius: 99px; color: #fff; font-weight: 900; font-size: 13px; margin: 6px 0 10px; }
+    .stage { height: 340px; border-radius: 24px; overflow: hidden; background: linear-gradient(160deg, #FFE1EE 0%, #E7DDFF 55%, #D8F3EA 100%); position: relative; touch-action: none; }
+    @media (prefers-color-scheme: dark) { .stage { background: linear-gradient(160deg, #4A3557 0%, #3A3460 55%, #2E4A4A 100%); } }
+    .stage canvas { width: 100%; height: 100%; display: block; }
+    .hint { position: absolute; bottom: 8px; left: 0; right: 0; text-align: center; font-size: 12px; color: #7a6a8a; font-weight: 700; pointer-events: none; }
+    .row { display: flex; gap: 8px; margin-top: 12px; }
+    .btn { flex: 1; padding: 13px; border: 0; border-radius: 16px; font: inherit; font-weight: 800; color: #fff; background: linear-gradient(135deg, #C2A8FF, #FFA8D6); }
+    .btn.ghost { background: var(--card); color: var(--ink2); }
+    .x { float: right; width: 36px; height: 36px; border-radius: 50%; border: 0; background: var(--card); color: var(--ink2); font-size: 16px; }
+  </style>
+  <script type="importmap">{ "imports": { "three": "./vendor/three/three.module.min.js" } }</script>
+</head>
+<body>
+  <main>
+    <h1>🐾 低多邊形動物預覽</h1>
+    <p class="lead">普通 20・稀有 15・史詩 10・傳說 5，全部用程式捏出來。點一下可以 360° 轉動牠。</p>
+    <p class="prog" id="prog">準備中…</p>
+    <div id="list"></div>
+  </main>
+  <div class="modal" id="modal">
+    <div class="sheet">
+      <button class="x" id="close" aria-label="關閉">✕</button>
+      <h3 id="m-name"></h3>
+      <span class="badge" id="m-badge"></span>
+      <div class="stage" id="stage"><div class="hint">👆 左右滑動轉動牠</div></div>
+      <div class="row"><button class="btn" id="dance">💃 動一動</button><button class="btn ghost" id="close2">關閉</button></div>
+    </div>
+  </div>
+  <script type="module">
+    import * as THREE from 'three';
+    import { RoomEnvironment } from './vendor/three/environments/RoomEnvironment.js';
+    import { LP_CATALOG, buildLowPoly } from './js/lowpoly.js';
+
+    const RAR = { common: ['普通', '#BFC3D9'], rare: ['稀有', '#7CC4FF'], epic: ['史詩', '#B48CFF'], legend: ['傳說', '#FFC93C'] };
+    const list = document.getElementById('list');
+    list.innerHTML = Object.keys(RAR).map((r) => {
+      const items = LP_CATALOG.filter((e) => e.rarity === r);
+      return `<h2><span class="dot" style="background:${RAR[r][1]}"></span>${RAR[r][0]} <small>${items.length} 隻</small></h2>
+        <div class="grid">${items.map((e) => `<button class="mon ${r}" data-id="${e.id}"><div class="pic"><span class="spin"></span></div><div class="nm">${e.name}</div></button>`).join('')}</div>`;
+    }).join('');
+
+    function scene(r) {
+      const s = new THREE.Scene();
+      const pm = new THREE.PMREMGenerator(r);
+      s.environment = pm.fromScene(new RoomEnvironment(), 0.04).texture;
+      s.environmentIntensity = 0.5;
+      s.add(new THREE.HemisphereLight(0xffffff, 0xffd6e8, 1.5));
+      const d = new THREE.DirectionalLight(0xffffff, 1.7); d.position.set(2, 4, 3); s.add(d);
+      return s;
+    }
+    function renderer(alpha = true) {
+      const r = new THREE.WebGLRenderer({ antialias: true, alpha, preserveDrawingBuffer: true });
+      r.outputColorSpace = THREE.SRGBColorSpace;
+      r.toneMapping = THREE.ACESFilmicToneMapping; r.toneMappingExposure = 1.1;
+      return r;
+    }
+
+    // 縮圖：用同一個繪圖器依序畫成圖片
+    const tr = renderer(); tr.setPixelRatio(1); tr.setSize(240, 240, false);
+    const ts = scene(tr);
+    const tc = new THREE.PerspectiveCamera(30, 1, 0.1, 100); tc.position.set(1.7, 1.65, 4.3); tc.lookAt(0, 1.02, 0);
+    const prog = document.getElementById('prog');
+    let done = 0;
+    for (const e of LP_CATALOG) {
+      const a = buildLowPoly(e.id, { particles: false });
+      a.update(0.016, 0.3);
+      a.pivot.rotation.y = -0.3;
+      ts.add(a.pivot); tr.render(ts, tc); ts.remove(a.pivot); a.dispose();
+      const img = new Image(); img.src = tr.domElement.toDataURL('image/png'); img.alt = e.name;
+      const pic = list.querySelector(`[data-id="${e.id}"] .pic`); pic.innerHTML = ''; pic.appendChild(img);
+      prog.textContent = `已完成 ${++done} / ${LP_CATALOG.length}`;
+      if (done % 4 === 0) await new Promise((r) => setTimeout(r, 0));
+    }
+    window.thumbsDone = true;
+
+    // 大圖：可旋轉
+    const modal = document.getElementById('modal'), box = document.getElementById('stage');
+    const vr = renderer(); vr.setPixelRatio(Math.min(devicePixelRatio, 2)); box.prepend(vr.domElement);
+    const vs = scene(vr);
+    const vc = new THREE.PerspectiveCamera(30, 1, 0.1, 100); vc.position.set(0, 1.9, 6.2); vc.lookAt(0, 1.0, 0);
+    let cur = null, rot = 0, running = false, t = 0;
+    const clock = new THREE.Clock();
+    function size() { const w = box.clientWidth, h = box.clientHeight; vr.setSize(w, h, false); vc.aspect = w / h; vc.updateProjectionMatrix(); }
+    function loop() {
+      if (!running) return;
+      const dt = Math.min(clock.getDelta(), 0.05); t += dt;
+      if (cur) { cur.update(dt, t); cur.pivot.rotation.y = rot + Math.sin(t * 0.5) * 0.15; }
+      vr.render(vs, vc); requestAnimationFrame(loop);
+    }
+    function open(id) {
+      const e = LP_CATALOG.find((x) => x.id === id);
+      document.getElementById('m-name').textContent = e.name;
+      const b = document.getElementById('m-badge'); b.textContent = RAR[e.rarity][0]; b.style.background = RAR[e.rarity][1];
+      modal.classList.add('on'); size();
+      if (cur) { vs.remove(cur.pivot); cur.dispose(); }
+      cur = buildLowPoly(id); vs.add(cur.pivot); rot = -0.6; t = 0;
+      cur.playHappy();
+      running = true; clock.getDelta(); loop();
+    }
+    function close() { modal.classList.remove('on'); running = false; }
+    list.addEventListener('click', (ev) => { const m = ev.target.closest('.mon'); if (m) open(m.dataset.id); });
+    document.getElementById('close').onclick = close; document.getElementById('close2').onclick = close;
+    modal.addEventListener('click', (ev) => { if (ev.target === modal) close(); });
+    document.getElementById('dance').onclick = () => cur && cur.playHappy();
+    let x0 = null, r0 = 0;
+    box.addEventListener('pointerdown', (ev) => { x0 = ev.clientX; r0 = rot; box.setPointerCapture(ev.pointerId); });
+    box.addEventListener('pointermove', (ev) => { if (x0 !== null) rot = r0 + (ev.clientX - x0) * 0.012; });
+    box.addEventListener('pointerup', () => { x0 = null; });
+    window.openAnimal = open;
+  </script>
+</body>
+</html>
