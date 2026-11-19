@@ -434,3 +434,43 @@ h2 .sub { font-size: 13px; color: var(--ink2); font-weight: 600; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition: none !important; }
 }
+
+/* ---------- 每日習慣 ---------- */
+.card.habit.water { border-left: 6px solid var(--sky); }
+.card.habit.ex { border-left: 6px solid var(--peach); }
+.card.habit.hdone { background: linear-gradient(135deg, var(--card) 60%, #F1FAFF); }
+.card.habit.ex.hdone { background: linear-gradient(135deg, var(--card) 60%, #FFF6EC); }
+@media (prefers-color-scheme: dark) {
+  .card.habit.hdone { background: linear-gradient(135deg, var(--card) 60%, #2C3E52); }
+  .card.habit.ex.hdone { background: linear-gradient(135deg, var(--card) 60%, #4A3A2C); }
+}
+.card.habit .title small { font-size: 14px; font-weight: 700; }
+.tag.water { background: #DDF0FF; color: #2D6A9C; }
+.tag.ex { background: #FFE9D6; color: #A2561E; }
+@media (prefers-color-scheme: dark) { .tag.water { background: #263F55; color: #BFE3FF; } .tag.ex { background: #4F3A26; color: #FFD3AE; } }
+.wbar { height: 12px; border-radius: 99px; background: var(--bg2); overflow: hidden; margin: 4px 0 12px; }
+.wbar i { display: block; height: 100%; border-radius: 99px; background: linear-gradient(90deg, #AEDBFF, #7CC4FF, #9FE3C8); transition: width .4s; }
+.chip.wchip { background: #E6F4FF; color: #2D6A9C; }
+@media (prefers-color-scheme: dark) { .chip.wchip { background: #263F55; color: #CBE7FF; } }
+.ex-add { display: flex; gap: 8px; margin-top: 10px; }
+.ex-add .input { padding: 10px 12px; font-size: 15px; }
+.x-del { width: 30px; height: 30px; border-radius: 10px; color: var(--ink2); background: var(--bg2); flex: none; }
+.chip.fav { display: inline-flex; align-items: center; gap: 6px; padding-right: 6px; }
+.chip.fav button { width: 22px; height: 22px; border-radius: 50%; background: rgba(0,0,0,.06); font-size: 11px; }
+.goal-row { display: flex; align-items: center; gap: 8px; font-weight: 800; }
+.goal-row .input { flex: 1; }
+.week7 { display: grid; grid-template-columns: repeat(8, 1fr); gap: 4px; text-align: center; }
+.w7 { display: flex; flex-direction: column; gap: 4px; font-size: 18px; }
+.w7 b { font-size: 12px; color: var(--ink2); }
+.w7.lbl { order: -1; }
+.seg.seg4 button { font-size: 12.5px; padding: 9px 2px; }
+.cal .cell .amt { font-size: 10px; font-weight: 800; color: var(--ink2); margin-top: 8px; }
+.cal.water .cell.has { background: #E3F4FF; }
+.cal.ex .cell.has { background: #FFF1E0; }
+@media (prefers-color-scheme: dark) { .cal.water .cell.has { background: #263F55; } .cal.ex .cell.has { background: #4A3A2C; } }
+.cal .cell:disabled { cursor: default; }
+.stat b small { font-size: 13px; }
+.stat .top-ex { font-size: 16px; line-height: 1.6; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.log-list { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 14px; font-size: 14px; }
+.log-list div { display: flex; justify-content: space-between; }
+.day-detail h2 .sub { font-size: 13px; }

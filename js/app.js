@@ -8,7 +8,7 @@ let homeStage = null;
 let threeMod = null;
 let threeFailed = false;
 let plannerShownThisSession = false;
-const calState = { y: 0, m: 0, sel: null };
+const calState = { y: 0, m: 0, sel: null, mode: 'water' };
 const listState = { filter: 'must' };
 
 const $ = (sel, root = document) => root.querySelector(sel);
@@ -176,6 +176,9 @@ function viewToday() {
       </div>
     </div>
     ${banners}
+    <h2>每日習慣 <span class="sub">💧 喝水・🏃 運動</span></h2>
+    ${waterCard(today)}
+    ${exerciseCard(today, { compact: true })}
     <h2>今天的任務 <span class="sub">${tasks.length ? `${done.length} / ${tasks.length} 完成` : ''}</span></h2>
     ${tasks.length ? `<div class="progress"><i style="width:${pct}%"></i></div>` : ''}
     ${cards || `<div class="empty"><div class="big">🌱</div><p>今天還沒有任務<br>挑幾件想完成的事吧！</p></div>`}
@@ -196,6 +199,7 @@ function viewToday() {
     add: () => openPlanner({ addMode: true }),
     plan: () => openPlanner({ addMode: false }),
     backup: () => exportData(),
+    ...habitActions(),
   };
   return { html, actions, after: mountHome };
 }
@@ -305,7 +309,7 @@ async function finishTask(id) {
   const res = D.completeTask(S, id, today);
   if (!res) return;
   render();
-  await showReward(res.rewards, res.sticker);
+  await showReward(res.rewards);
   toast(`完成「${res.task.title}」`, {
     label: '復原',
     fn: () => {
@@ -624,10 +628,133 @@ function openEditor(task, { onSaved, hint } = {}) {
 }
 
 /* =========================================================
+   每日習慣：喝水、運動
+   ========================================================= */
+const WATER_STEPS = [100, 250, 500];
+function waterCard(key) {
+  const total = D.waterTotal(S, key), goal = D.waterGoalOf(S, key), d = D.waterDay(S, key);
+  const done = total >= goal;
+  return `<div class="card habit water ${done ? 'hdone' : ''}">
+    <div class="row"><span class="tag water">💧 每日喝水</span>${done ? `<span class="tag ok">達標！${d.sticker || ''}</span>` : ''}</div>
+    <div class="title">${total} <small class="muted">/ ${goal} ml</small></div>
+    <div class="wbar"><i style="width:${Math.min(100, (total / goal) * 100)}%"></i></div>
+    <div class="chips">
+      ${WATER_STEPS.map((ml) => `<button class="chip wchip" data-act="w-add" data-k="${key}" data-ml="${ml}">＋${ml}</button>`).join('')}
+      <button class="chip wchip" data-act="w-custom" data-k="${key}">✏️ 自訂</button>
+      ${d.logs.length ? `<button class="chip" data-act="w-undo" data-k="${key}" aria-label="移除上一筆">↩️ 上一筆</button>` : ''}
+    </div>
+    ${done ? '' : `<p class="help">再喝 ${goal - total} ml 就達標囉！</p>`}
+  </div>`;
+}
+function exerciseCard(key, { compact = false } = {}) {
+  const d = D.exerciseDay(S, key), done = d.items.some((i) => i.done);
+  const showIdeas = !compact || !d.items.length;
+  return `<div class="card habit ex ${done ? 'hdone' : ''}">
+    <div class="row"><span class="tag ex">🏃 每日運動</span>${done ? `<span class="tag ok">完成！${d.sticker || ''}</span>` : ''}</div>
+    ${d.items.length ? `<ul class="steps">${d.items.map((i) => `<li class="${i.done ? 'done' : ''}">
+        <span class="check ${i.done ? 'on' : ''}" data-act="x-toggle" data-k="${key}" data-id="${i.id}">${i.done ? '✓' : ''}</span>
+        <span data-act="x-toggle" data-k="${key}" data-id="${i.id}" style="flex:1">${esc(i.name)}</span>
+        <button class="x-del" data-act="x-del" data-k="${key}" data-id="${i.id}" aria-label="刪除">✕</button></li>`).join('')}</ul>`
+      : '<p class="help" style="margin:6px 4px 0">今天想做什麼運動？寫下來、做完打勾就完成了！</p>'}
+    <div class="ex-add"><input class="input" data-exin="${key}" placeholder="運動項目，例如：散步 20 分鐘" maxlength="30">
+      <button class="btn small go" data-act="x-add" data-k="${key}">新增</button></div>
+    ${showIdeas ? `<div class="chips" style="margin-top:8px">${S.habits.exFavs.map((n) => `<button class="chip" data-act="x-quick" data-k="${key}" data-v="${esc(n)}">${esc(n)}</button>`).join('')}</div>` : ''}
+  </div>`;
+}
+function afterHabit(sticker, type) {
+  save(); render();
+  if (sticker) {
+    confetti(40);
+    toast(type === 'water' ? `💧 喝水達標！貼紙 ${sticker} 已貼到喝水月曆` : `🏃 運動完成！貼紙 ${sticker} 已貼到運動月曆`, null, 3200);
+  }
+}
+function habitActions() {
+  return {
+    'w-add': (b) => afterHabit(D.addWater(S, b.dataset.k, Number(b.dataset.ml)), 'water'),
+    'w-custom': (b) => {
+      const v = prompt('這次喝了多少 ml？', '300');
+      if (v === null) return;
+      const ml = Math.round(Number(v));
+      if (!ml || ml <= 0 || ml > 5000) { toast('請輸入 1～5000 的數字'); return; }
+      afterHabit(D.addWater(S, b.dataset.k, ml), 'water');
+    },
+    'w-undo': (b) => { D.undoWater(S, b.dataset.k); save(); render(); toast('已移除上一筆'); },
+    'x-add': (b) => {
+      const inp = document.querySelector(`[data-exin="${b.dataset.k}"]`);
+      const v = (inp && inp.value || '').trim();
+      if (!v) { toast('先寫下運動項目喔'); inp && inp.focus(); return; }
+      D.addExercise(S, b.dataset.k, v); save(); render();
+    },
+    'x-quick': (b) => { D.addExercise(S, b.dataset.k, b.dataset.v); save(); render(); },
+    'x-toggle': (b) => afterHabit(D.toggleExercise(S, b.dataset.k, b.dataset.id), 'exercise'),
+    'x-del': (b) => { D.deleteExercise(S, b.dataset.k, b.dataset.id); save(); render(); },
+  };
+}
+
+/* =========================================================
    清單
    ========================================================= */
+function viewHabitList(segHtml) {
+  const h = S.habits;
+  const days = [];
+  for (let i = 6; i >= 0; i--) days.push(D.addDays(today, -i));
+  const html = `
+    <div class="top"><div class="brand">任務清單 📋</div></div>
+    ${segHtml}
+    <h2>💧 每日喝水目標</h2>
+    <div class="card">
+      <div class="goal-row"><input class="input" type="number" inputmode="numeric" min="100" max="5000" step="50" data-goal value="${h.waterGoal}"><span>ml</span><button class="btn small go" data-act="goal-save">儲存</button></div>
+      <div class="chips" style="margin-top:10px">${[1000, 1500, 2000, 2500].map((v) => `<button class="chip ${h.waterGoal === v ? 'on' : ''}" data-act="goal-set" data-v="${v}">${v} ml</button>`).join('')}</div>
+      <p class="help">每天喝到這個量就算達標，會在喝水月曆得到一張貼紙。</p>
+    </div>
+    <h2>今天的習慣</h2>
+    ${waterCard(today)}
+    ${exerciseCard(today)}
+    <h2>🏃 常用運動項目</h2>
+    <div class="card">
+      <div class="chips">${h.exFavs.map((n, i) => `<span class="chip fav">${esc(n)}<button data-act="fav-del" data-i="${i}" aria-label="刪除">✕</button></span>`).join('') || '<span class="muted small">還沒有常用項目</span>'}</div>
+      <div class="ex-add" style="margin-top:10px"><input class="input" data-favin placeholder="新增常用項目，例如：跳舞" maxlength="20"><button class="btn small go" data-act="fav-add">新增</button></div>
+    </div>
+    <h2>最近 7 天</h2>
+    <div class="card week7">
+      ${days.map((k) => `<div class="w7"><b>${D.WEEK[D.keyToDate(k).getDay()]}</b><span>${D.waterDay(S, k).sticker || '·'}</span><span>${D.exerciseDay(S, k).sticker || '·'}</span></div>`).join('')}
+      <div class="w7 lbl"><b>&nbsp;</b><span>💧</span><span>🏃</span></div>
+    </div>
+  `;
+  const setGoal = (v) => {
+    if (!v || v < 100 || v > 5000) { toast('請輸入 100～5000 之間的數字'); return; }
+    const st = D.setWaterGoal(S, v, today);
+    if (st) afterHabit(st, 'water');
+    else { save(); render(); toast(`每日喝水目標改成 ${v} ml 💧`); }
+  };
+  return {
+    html,
+    actions: {
+      f: (b) => { listState.filter = b.dataset.v; render(); },
+      'goal-set': (b) => setGoal(Number(b.dataset.v)),
+      'goal-save': () => setGoal(Math.round(Number($('[data-goal]').value))),
+      'fav-del': (b) => { h.exFavs.splice(Number(b.dataset.i), 1); save(); render(); },
+      'fav-add': () => {
+        const v = ($('[data-favin]').value || '').trim();
+        if (!v) return;
+        if (!h.exFavs.includes(v)) h.exFavs.push(v);
+        save(); render();
+      },
+      ...habitActions(),
+    },
+  };
+}
+
 function viewList() {
   const f = listState.filter;
+  const cntAll = (type) => Object.values(S.tasks).filter((t) => t.status === 'todo' && t.type === type).length;
+  const segHtml = `<div class="seg seg4" style="margin-bottom:14px">
+      <button data-act="f" data-v="must" class="${f === 'must' ? 'on' : ''}">🐸 必須做 ${cntAll('must')}</button>
+      <button data-act="f" data-v="want" class="${f === 'want' ? 'on' : ''}">🌱 想做 ${cntAll('want')}</button>
+      <button data-act="f" data-v="habit" class="${f === 'habit' ? 'on' : ''}">💧 習慣</button>
+      <button data-act="f" data-v="done" class="${f === 'done' ? 'on' : ''}">✅ 完成</button>
+    </div>`;
+  if (f === 'habit') return viewHabitList(segHtml);
   const todayPlan = (S.days[today] && S.days[today].plan) || [];
   let tasks = Object.values(S.tasks);
   if (f === 'done') tasks = tasks.filter((t) => t.status === 'done').sort((a, b) => b.doneAt - a.doneAt).slice(0, 60);
@@ -635,7 +762,6 @@ function viewList() {
     tasks = tasks.filter((t) => t.status === 'todo' && t.type === f);
     tasks.sort(f === 'must' ? (a, b) => (a.deadline || '9999').localeCompare(b.deadline || '9999') : (a, b) => a.createdAt - b.createdAt);
   }
-  const cnt = (type) => Object.values(S.tasks).filter((t) => t.status === 'todo' && t.type === type).length;
   const cards = tasks.map((t) => `<div class="card ${t.type} ${t.status === 'done' ? 'done' : ''}" data-act="edit" data-id="${t.id}">
       <div class="row">${starsHtml(t.difficulty)}${deadlineTag(t)}${todayPlan.includes(t.id) && t.status === 'todo' ? '<span class="tag soon">今天</span>' : ''}</div>
       <div class="title">${esc(t.title)}</div>
@@ -643,11 +769,7 @@ function viewList() {
     </div>`).join('');
   const html = `
     <div class="top"><div class="brand">任務清單 📋</div></div>
-    <div class="seg" style="margin-bottom:14px">
-      <button data-act="f" data-v="must" class="${f === 'must' ? 'on' : ''}">🐸 必須做 ${cnt('must')}</button>
-      <button data-act="f" data-v="want" class="${f === 'want' ? 'on' : ''}">🌱 想做 ${cnt('want')}</button>
-      <button data-act="f" data-v="done" class="${f === 'done' ? 'on' : ''}">✅ 完成</button>
-    </div>
+    ${segHtml}
     ${f !== 'done' ? '<button class="add-fab" data-act="new" style="margin-bottom:14px">＋ 新增任務</button>' : ''}
     ${cards || `<div class="empty"><div class="big">${f === 'done' ? '🏆' : '✨'}</div><p>${f === 'done' ? '完成的任務會出現在這裡' : '想到什麼就先丟進來，<br>每天再挑要做的！'}</p></div>`}
   `;
@@ -665,61 +787,79 @@ function viewList() {
    月曆
    ========================================================= */
 function viewCalendar() {
-  if (!calState.y) { const d = D.keyToDate(today); calState.y = d.getFullYear(); calState.m = d.getMonth(); }
+  if (!calState.y) { const d = D.keyToDate(today); calState.y = d.getFullYear(); calState.m = d.getMonth(); calState.sel = today; }
   const { y, m } = calState;
+  const water = calState.mode === 'water';
   const first = new Date(y, m, 1), daysIn = new Date(y, m + 1, 0).getDate();
   const pad = (n) => String(n).padStart(2, '0');
   const key = (d) => `${y}-${pad(m + 1)}-${pad(d)}`;
   let cells = '';
   for (let i = 0; i < first.getDay(); i++) cells += '<div class="cell blank"></div>';
-  let execDays = 0, doneCount = 0;
+  let okDays = 0, totalMl = 0, logDays = 0, exCount = 0;
+  const names = {};
   for (let d = 1; d <= daysIn; d++) {
-    const k = key(d), day = S.days[k];
-    const n = day ? day.completed.length : 0;
-    if (n) { execDays++; doneCount += n; }
-    const cls = ['cell', n ? 'has' : '', k === today ? 'today' : '', k === calState.sel ? 'sel' : '', k > today ? 'future' : ''].join(' ');
-    cells += `<button class="${cls}" data-act="sel" data-k="${k}"><span class="n">${d}</span>${day && day.sticker ? `<span class="st">${day.sticker}</span>` : ''}</button>`;
+    const k = key(d);
+    let sticker = null, sub = '';
+    if (water) {
+      const wd = S.habits.water[k], tot = D.waterTotal(S, k);
+      sticker = wd && wd.sticker;
+      if (tot) { totalMl += tot; logDays++; if (!sticker) sub = `<span class="amt">${tot}</span>`; }
+    } else {
+      const ed = S.habits.exercise[k];
+      sticker = ed && ed.sticker;
+      if (ed) for (const it of ed.items) if (it.done) { exCount++; names[it.name] = (names[it.name] || 0) + 1; }
+      if (ed && ed.items.length && !sticker) sub = '<span class="amt">·</span>';
+    }
+    if (sticker) okDays++;
+    const cls = ['cell', sticker ? 'has' : '', k === today ? 'today' : '', k === calState.sel ? 'sel' : '', k > today ? 'future' : ''].join(' ');
+    cells += `<button class="${cls}" data-act="sel" data-k="${k}" ${k > today ? 'disabled' : ''}><span class="n">${d}</span>${sticker ? `<span class="st">${sticker}</span>` : sub}</button>`;
   }
-  const monthStart = new Date(y, m, 1).getTime(), monthEnd = new Date(y, m + 1, 1).getTime();
-  const newAnimals = Object.values(S.collection).filter((c) => c.at >= monthStart && c.at < monthEnd).length;
+  const top = Object.entries(names).sort((a, b) => b[1] - a[1])[0];
+  const stats = water
+    ? `<div class="stat"><b>${okDays}</b><span>達標天數 💧</span></div>
+       <div class="stat"><b>${(totalMl / 1000).toFixed(1)}<small>L</small></b><span>本月總量</span></div>
+       <div class="stat"><b>${logDays ? Math.round(totalMl / logDays) : 0}</b><span>平均每日 ml</span></div>`
+    : `<div class="stat"><b>${okDays}</b><span>運動天數 🏃</span></div>
+       <div class="stat"><b>${exCount}</b><span>完成項目</span></div>
+       <div class="stat"><b class="top-ex">${top ? esc(top[0]) : '—'}</b><span>最常做</span></div>`;
 
   let detail = '';
-  if (calState.sel) {
-    const day = S.days[calState.sel];
-    const list = day ? day.completed : [];
-    detail = `<div class="day-detail"><h2>${D.prettyDay(calState.sel)} ${day && day.sticker ? day.sticker : ''}</h2>
-      ${list.length ? list.map((c) => {
-        const e = D.CATALOG_BY_ID[c.entryId];
-        return `<div class="done-row"><img data-thumb="${c.entryId}" alt=""><div><b>${esc(c.title)}</b><div class="small muted">${starsHtml(c.difficulty || 1)} 得到 ${esc(e ? e.name : '')}</div></div></div>`;
-      }).join('') : '<p class="muted" style="margin:0 6px">這天沒有完成紀錄～休息也很重要 🌙</p>'}
+  if (calState.sel && calState.sel <= today) {
+    const k = calState.sel;
+    const logs = D.waterDay(S, k).logs;
+    detail = `<div class="day-detail"><h2>${D.prettyDay(k)}${k === today ? ' <span class="sub">今天</span>' : ''}</h2>
+      ${water ? waterCard(k) : exerciseCard(k)}
+      ${water && logs.length ? `<div class="card log-list">${logs.map((l) => `<div><span class="muted">${new Date(l.at).toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit' })}</span><b>${l.ml} ml</b></div>`).join('')}</div>` : ''}
+      ${k !== today ? '<p class="muted small" style="text-align:center">忘記記錄的話，也可以在這裡補登 ✍️</p>' : ''}
     </div>`;
   }
   const html = `
+    <div class="seg" style="margin-bottom:12px">
+      <button data-act="mode" data-v="water" class="${water ? 'on' : ''}">💧 喝水月曆</button>
+      <button data-act="mode" data-v="exercise" class="${!water ? 'on' : ''}">🏃 運動月曆</button>
+    </div>
     <div class="cal-head">
       <button data-act="prev" aria-label="上個月">‹</button>
       <h1>${y} 年 ${m + 1} 月</h1>
       <button data-act="next" aria-label="下個月">›</button>
     </div>
-    <div class="stat-row">
-      <div class="stat"><b>${execDays}</b><span>執行天數 🗓️</span></div>
-      <div class="stat"><b>${doneCount}</b><span>完成任務 ✅</span></div>
-      <div class="stat"><b>${newAnimals}</b><span>新夥伴 🐾</span></div>
-    </div>
-    <div class="cal">
+    <div class="stat-row">${stats}</div>
+    <div class="cal ${water ? 'water' : 'ex'}">
       <div class="wk">${D.WEEK.map((w) => `<div>${w}</div>`).join('')}</div>
       <div class="grid">${cells}</div>
     </div>
-    <p class="muted small" style="text-align:center">每天完成第一件任務，就能得到一張貼紙 🎀</p>
+    <p class="muted small" style="text-align:center">${water ? `每天喝到 ${S.habits.waterGoal} ml，就能得到一張貼紙 💧` : '每天完成一項運動，就能得到一張貼紙 🏅'}</p>
     ${detail}
   `;
   return {
     html,
     actions: {
+      mode: (b) => { calState.mode = b.dataset.v; render(); },
       prev: () => { calState.m--; if (calState.m < 0) { calState.m = 11; calState.y--; } calState.sel = null; render(); },
       next: () => { calState.m++; if (calState.m > 11) { calState.m = 0; calState.y++; } calState.sel = null; render(); },
       sel: (b) => { calState.sel = calState.sel === b.dataset.k ? null : b.dataset.k; render(); },
+      ...habitActions(),
     },
-    after: (root) => fillThumbs(root),
   };
 }
 
@@ -759,7 +899,7 @@ function viewZoo() {
       </div>
     </div>
     ${sections}
-    <p class="muted small" style="text-align:center;margin-top:20px">3D 模型：Quaternius（CC0 公眾領域授權）</p>
+    <p class="muted small" style="text-align:center;margin-top:20px">所有動物都是用程式捏出來的低多邊形 3D 模型 🧸</p>
   `;
   return {
     html,
@@ -830,17 +970,18 @@ function viewSettings() {
       <p><b>何時何地</b>：Gollwitzer 的「執行意圖」研究發現，事先決定「什麼時候、在哪裡做」，執行率會明顯提升。</p>
       <p><b>拆解步驟</b>：大任務拆小，讓每一步都看得到終點。</p>
       <p><b>收集獎勵</b>：完成就立刻有回饋，而且「不知道會孵出誰」的期待感特別有激勵效果。</p>
+      <p><b>每日習慣</b>：喝水、運動這類每天的小習慣，記錄下來就看得到進度；月曆上的貼紙會讓「不想中斷」成為動力。</p>
       <p><b>溫柔對待自己</b>：研究顯示，原諒上次拖延的自己，下次反而比較不會拖延。所以這裡沒有懲罰，過期了也一樣可以完成 💗</p>
     </div>
     <div class="set-group about" style="padding:14px 16px">
       <h4 style="margin-top:0">🐾 素材與授權</h4>
-      <p>3D 動物模型：Quaternius「Cute Animated Monsters」，CC0 公眾領域授權（可自由使用）。</p>
+      <p>3D 動物：用程式即時組合基本形狀（低多邊形風格），不需要下載模型檔。</p>
       <p>3D 引擎：three.js（MIT 授權）。</p>
     </div>
     <div class="set-group">
       <button class="set-row danger" data-act="reset"><span class="si">🧹</span><span class="st"><b>清除所有資料</b><span>任務、動物、貼紙都會刪除，無法復原</span></span></button>
     </div>
-    <p class="muted small" style="text-align:center">要拚要猛 v1.0</p>
+    <p class="muted small" style="text-align:center">要拚要猛 v2.0</p>
     <input type="file" id="import-file" accept="application/json,.json" hidden>
   `;
   return {
@@ -914,6 +1055,13 @@ $('#view').addEventListener('click', (e) => {
   const fn = viewActions[b.dataset.act];
   if (fn) fn(b, e);
 });
+$('#view').addEventListener('keydown', (e) => {
+  if (e.key !== 'Enter' || e.isComposing) return;
+  const t = e.target;
+  if (t.dataset.exin !== undefined) { e.preventDefault(); viewActions['x-add']?.({ dataset: { k: t.dataset.exin } }); }
+  if (t.dataset.favin !== undefined) { e.preventDefault(); viewActions['fav-add']?.(); }
+  if (t.dataset.goal !== undefined) { e.preventDefault(); viewActions['goal-save']?.(); }
+});
 $('#tabbar').addEventListener('click', (e) => {
   const b = e.target.closest('[data-tab]');
   if (!b) return;
@@ -957,8 +1105,9 @@ document.addEventListener('visibilitychange', () => { if (!document.hidden) tick
 /* ---------- Service Worker：讓 App 能離線使用、自動更新 ---------- */
 if ('serviceWorker' in navigator && location.protocol !== 'file:') {
   let refreshing = false;
+  const hadController = !!navigator.serviceWorker.controller; // 第一次安裝時不需要重新整理
   navigator.serviceWorker.addEventListener('controllerchange', () => {
-    if (refreshing) return;
+    if (refreshing || !hadController) return;
     refreshing = true;
     location.reload();
   });

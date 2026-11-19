@@ -1,6 +1,6 @@
 // Service Worker：在背景把 App 的檔案存到手機裡，讓 App 沒網路也能打開。
 // 每次更新 App 時，把 VERSION 改掉，手機就會下載新版本。
-const VERSION = 'v1.0.0';
+const VERSION = 'v2.0.0';
 const CACHE = `ypym-app-${VERSION}`;
 const FILES = [
   './',
@@ -9,18 +9,13 @@ const FILES = [
   './js/app.js',
   './js/data.js',
   './js/stage3d.js',
+  './js/lowpoly.js',
   './manifest.json',
   './icons/icon-180.png',
   './icons/icon-192.png',
   './icons/icon-512.png',
   './vendor/three/three.module.min.js',
-  './vendor/three/loaders/GLTFLoader.js',
-  './vendor/three/utils/BufferGeometryUtils.js',
-  './vendor/three/utils/SkeletonUtils.js',
   './vendor/three/environments/RoomEnvironment.js',
-  ...['panda', 'penguin', 'chicken', 'pig', 'bee', 'crab', 'bat', 'deer', 'yeti', 'yellowdragon',
-    'cthulhu', 'ghost', 'mushroom', 'cactus', 'alien', 'alien_tall', 'cyclops', 'greendemon']
-    .map((n) => `./models/${n}.glb`),
 ];
 
 self.addEventListener('install', (e) => {

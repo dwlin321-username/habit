@@ -2,46 +2,9 @@
 // 不需要下載任何模型檔。每隻動物由「物種」+「配件／變身」組成。
 import * as THREE from 'three';
 
-/* =========================================================
-   圖鑑清單：普通 20、稀有 15、史詩 10、傳說 5
-   ========================================================= */
-export const LP_SPECIES = {
-  shiba: '柴犬', pom: '白色狐狸犬', cat: '三花貓', rabbit: '白兔', panda: '熊貓', bear: '小熊',
-  pig: '小豬', chick: '小雞', penguin: '企鵝', fox: '狐狸', frog: '青蛙',
-  hamster: '倉鼠', koala: '無尾熊', sheep: '綿羊', cow: '乳牛', owl: '貓頭鷹',
-  duck: '鴨鴨', hedgehog: '刺蝟', seal: '海豹', turtle: '烏龜', capybara: '水豚',
-};
-const RARE = [
-  ['shiba', '圍巾柴犬', ['scarf']], ['pom', '蝴蝶結狐狸犬', ['bow:#E5484D']], ['cat', '蝴蝶結貓咪', ['bow']], ['rabbit', '草莓帽兔兔', ['strawberryHat']],
-  ['panda', '竹子熊貓', ['bamboo']], ['bear', '蜂蜜小熊', ['honey']], ['pig', '花圈小豬', ['flowerCrown']],
-  ['chick', '蛋殼小雞', ['eggshell']], ['penguin', '毛帽企鵝', ['beanie']], ['fox', '眼鏡狐狸', ['glasses']],
-  ['frog', '荷葉青蛙', ['lotus']], ['hamster', '瓜子倉鼠', ['seed']], ['koala', '樹葉無尾熊', ['eucalyptus']],
-  ['sheep', '鈴鐺綿羊', ['bell']], ['cow', '草帽乳牛', ['strawHat']], ['capybara', '柚子水豚', ['yuzu']],
-];
-const EPIC = [
-  ['shiba', '騎士柴犬', ['knightHelmet', 'cape:#E5484D', 'shield']],
-  ['pom', '魔法師狐狸犬', ['wizardHat', 'cape:#6E5BC8', 'starWand']],
-  ['rabbit', '公主兔兔', ['crown', 'cape:#B48CFF', 'starWand']],
-  ['fox', '偵探狐狸', ['detectiveHat', 'bowtie', 'magnifier']],
-  ['owl', '魔法師貓頭鷹', ['wizardHat', 'starWand']],
-  ['duck', '水手鴨鴨', ['sailorCap', 'neckerchief']],
-  ['seal', '派對海豹', ['partyHat', 'balloon']],
-  ['turtle', '探險家烏龜', ['explorerHat', 'binoculars', 'map']],
-  ['bear', '主廚小熊', ['chefHat', 'apron', 'spatula']],
-  ['capybara', '溫泉水豚', ['towel', 'bucket'], 'steam'],
-  ['penguin', '太空人企鵝', ['spaceHelmet', 'jetpack']],
-];
-const LEGEND = [
-  ['fox', '九尾仙狐', 'ninetail'], ['cat', '黃金招財貓', 'lucky'], ['rabbit', '天使兔兔', 'angel'],
-  ['sheep', '彩虹獨角羊', 'unicorn'], ['penguin', '星空企鵝', 'galaxy'],
-];
-export const LP_CATALOG = [
-  ...Object.entries(LP_SPECIES).map(([sp, name]) => ({ id: sp, sp, rarity: 'common', name, acc: [] })),
-  ...RARE.map(([sp, name, acc]) => ({ id: `${sp}_r`, sp, rarity: 'rare', name, acc })),
-  ...EPIC.map(([sp, name, acc, fx]) => ({ id: `${sp}_e`, sp, rarity: 'epic', name, acc, fx: fx || 'sparkle' })),
-  ...LEGEND.map(([sp, name, form]) => ({ id: `${sp}_l`, sp, rarity: 'legend', name, acc: [], form, fx: form })),
-];
-export const LP_BY_ID = Object.fromEntries(LP_CATALOG.map((e) => [e.id, e]));
+// 圖鑑清單（普通／稀有／史詩／傳說）統一放在 data.js
+import { CATALOG as LP_CATALOG, CATALOG_BY_ID as LP_BY_ID, SPECIES as LP_SPECIES } from './data.js';
+export { LP_CATALOG, LP_BY_ID, LP_SPECIES };
 
 /* =========================================================
    基本形狀工具

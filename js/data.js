@@ -1,4 +1,4 @@
-// 資料層：存檔、日期、動物圖鑑、抽獎規則
+// 資料層：存檔、日期、動物圖鑑、抽獎規則、每日習慣
 // 所有資料存在 localStorage（瀏覽器內建的小型儲存空間），關掉 App 也會保留。
 
 export const STORAGE_KEY = 'ypym-data-v1';
@@ -45,7 +45,7 @@ export function whenLabel(when) {
   return p ? `${p.label} ${when.time}` : `⏰ ${when.time}`;
 }
 
-/* ---------- 稀有度與圖鑑 ---------- */
+/* ---------- 稀有度與圖鑑（低多邊形動物） ---------- */
 export const RARITY = {
   common: { label: '普通', color: '#bfc3d9', shards: 1, order: 0 },
   rare: { label: '稀有', color: '#7cc4ff', shards: 3, order: 1 },
@@ -55,78 +55,67 @@ export const RARITY = {
 export const RARITY_ORDER = ['common', 'rare', 'epic', 'legend'];
 
 export const SPECIES = {
-  panda: '熊貓噗噗', penguin: '企鵝啾啾', chicken: '小雞嗶嗶', pig: '小豬嚕嚕',
-  bee: '蜜蜂嗡嗡', crab: '螃蟹夾夾', bat: '蝙蝠啪啪', deer: '小鹿角角',
-  yeti: '雪怪毛毛', yellowdragon: '小龍噴噴', cthulhu: '章魚觸觸', ghost: '幽靈飄飄',
-  mushroom: '蘑菇菇菇', cactus: '仙人掌刺刺', alien: '外星咕咕', alien_tall: '外星長長',
-  cyclops: '獨眼眨眨', greendemon: '小角綠綠',
+  shiba: '柴犬', pom: '白色狐狸犬', cat: '三花貓', rabbit: '白兔', panda: '熊貓', bear: '小熊',
+  pig: '小豬', chick: '小雞', penguin: '企鵝', fox: '狐狸', frog: '青蛙',
+  hamster: '倉鼠', koala: '無尾熊', sheep: '綿羊', cow: '乳牛', owl: '貓頭鷹',
+  duck: '鴨鴨', hedgehog: '刺蝟', seal: '海豹', turtle: '烏龜', capybara: '水豚',
 };
-const short = (sp) => SPECIES[sp].slice(-2); // 例如「噗噗」
-
-const TINTS = {
-  sakura: ['櫻花', '#ffb3cf'], mint: ['薄荷', '#9ff0cf'], lemon: ['檸檬', '#fff08a'],
-  lavender: ['薰衣草', '#d2bcff'], sky: ['天空', '#a6dbff'], peach: ['蜜桃', '#ffc4a3'],
-};
-const ACC_NAME = { crown: '皇冠', party: '派對帽', bow: '蝴蝶結', flower: '小花', halo: '天使' };
-
-function buildCatalog() {
-  const list = [];
-  for (const sp of Object.keys(SPECIES)) {
-    list.push({ id: sp, sp, rarity: 'common', name: SPECIES[sp] });
-  }
-  const rare = [
-    ['panda', 'sakura'], ['penguin', 'sky'], ['chicken', 'peach'], ['pig', 'lavender'],
-    ['bee', 'mint'], ['crab', 'lemon'], ['bat', 'lavender'], ['deer', 'sakura'],
-    ['yeti', 'mint'], ['ghost', 'sky'], ['mushroom', 'peach'], ['cactus', 'sakura'],
-  ];
-  for (const [sp, t] of rare) {
-    list.push({ id: `${sp}_${t}`, sp, rarity: 'rare', name: `${TINTS[t][0]}${short(sp)}`, tint: TINTS[t][1] });
-  }
-  const epic = [
-    ['panda', 'crown', 'sakura'], ['penguin', 'party', 'sky'], ['chicken', 'bow', 'lemon'],
-    ['pig', 'flower', 'peach'], ['yellowdragon', 'crown', 'mint'], ['cthulhu', 'party', 'lavender'],
-    ['alien', 'halo', 'mint'], ['cyclops', 'bow', 'sakura'],
-  ];
-  for (const [sp, acc, t] of epic) {
-    list.push({
-      id: `${sp}_${acc}`, sp, rarity: 'epic', name: `${ACC_NAME[acc]}${short(sp)}`,
-      tint: TINTS[t][1], acc, fx: 'sparkle',
-    });
-  }
-  const legend = [
-    ['yellowdragon', 'gold', '黃金神龍', 'crown'],
-    ['panda', 'rainbow', '彩虹噗噗', 'halo'],
-    ['ghost', 'galaxy', '星空飄飄', 'crown'],
-    ['yeti', 'diamond', '鑽石毛毛', 'crown'],
-    ['penguin', 'aurora', '極光啾啾', 'halo'],
-    ['deer', 'sakura', '櫻吹雪角角', 'flower'],
-  ];
-  for (const [sp, fx, name, acc] of legend) {
-    list.push({ id: `legend_${sp}`, sp, rarity: 'legend', name, fx, acc });
-  }
-  // 防呆：確認沒有重複的 id
-  const ids = new Set(list.map((e) => e.id));
-  if (ids.size !== list.length) console.error('圖鑑 id 重複');
-  return list;
-}
-export const CATALOG = buildCatalog();
+// 稀有：普通版 + 1 個招牌配件
+const RARE = [
+  ['shiba', '圍巾柴犬', ['scarf']], ['pom', '蝴蝶結狐狸犬', ['bow:#E5484D']], ['cat', '蝴蝶結貓咪', ['bow']],
+  ['rabbit', '草莓帽兔兔', ['strawberryHat']], ['panda', '竹子熊貓', ['bamboo']], ['bear', '蜂蜜小熊', ['honey']],
+  ['pig', '花圈小豬', ['flowerCrown']], ['chick', '蛋殼小雞', ['eggshell']], ['penguin', '毛帽企鵝', ['beanie']],
+  ['fox', '眼鏡狐狸', ['glasses']], ['frog', '荷葉青蛙', ['lotus']], ['hamster', '瓜子倉鼠', ['seed']],
+  ['koala', '樹葉無尾熊', ['eucalyptus']], ['sheep', '鈴鐺綿羊', ['bell']], ['cow', '草帽乳牛', ['strawHat']],
+  ['capybara', '柚子水豚', ['yuzu']],
+];
+// 史詩：整套造型 + 閃亮粒子
+const EPIC = [
+  ['shiba', '騎士柴犬', ['knightHelmet', 'cape:#E5484D', 'shield']],
+  ['pom', '魔法師狐狸犬', ['wizardHat', 'cape:#6E5BC8', 'starWand']],
+  ['rabbit', '公主兔兔', ['crown', 'cape:#B48CFF', 'starWand']],
+  ['fox', '偵探狐狸', ['detectiveHat', 'bowtie', 'magnifier']],
+  ['owl', '魔法師貓頭鷹', ['wizardHat', 'starWand']],
+  ['duck', '水手鴨鴨', ['sailorCap', 'neckerchief']],
+  ['seal', '派對海豹', ['partyHat', 'balloon']],
+  ['turtle', '探險家烏龜', ['explorerHat', 'binoculars', 'map']],
+  ['bear', '主廚小熊', ['chefHat', 'apron', 'spatula']],
+  ['capybara', '溫泉水豚', ['towel', 'bucket'], 'steam'],
+  ['penguin', '太空人企鵝', ['spaceHelmet', 'jetpack']],
+];
+// 傳說：神獸變身
+const LEGEND = [
+  ['fox', '九尾仙狐', 'ninetail'], ['cat', '黃金招財貓', 'lucky'], ['rabbit', '天使兔兔', 'angel'],
+  ['sheep', '彩虹獨角羊', 'unicorn'], ['penguin', '星空企鵝', 'galaxy'],
+];
+export const CATALOG = [
+  ...Object.entries(SPECIES).map(([sp, name]) => ({ id: sp, sp, rarity: 'common', name, acc: [] })),
+  ...RARE.map(([sp, name, acc]) => ({ id: `${sp}_r`, sp, rarity: 'rare', name, acc })),
+  ...EPIC.map(([sp, name, acc, fx]) => ({ id: `${sp}_e`, sp, rarity: 'epic', name, acc, fx: fx || 'sparkle' })),
+  ...LEGEND.map(([sp, name, form]) => ({ id: `${sp}_l`, sp, rarity: 'legend', name, acc: [], form, fx: form })),
+];
 export const CATALOG_BY_ID = Object.fromEntries(CATALOG.map((e) => [e.id, e]));
 
-/* ---------- 貼紙 ---------- */
-export const STICKERS = ['💖', '⭐', '🌈', '🍓', '🧁', '🍩', '🌸', '🍀', '🦄', '🍰', '🍭', '🌟',
-  '🎀', '🍑', '🍒', '🌻', '🍪', '🍦', '🌙', '🎈', '🍉', '🐾', '🫧', '🍬', '🌷', '🥞', '🍡', '🪐'];
+/* ---------- 習慣貼紙 ---------- */
+export const WATER_STICKERS = ['💧', '🐳', '🫧', '🌊', '🐬', '🧊', '🥤', '🐟', '🍉', '🍋', '🦭', '🐙', '🫐', '🌧️', '🐠', '🧋'];
+export const EXERCISE_STICKERS = ['💪', '🔥', '🏅', '⚡', '🌟', '🏃', '🚴', '🧘', '🏸', '⚽', '🏀', '🎽', '🥇', '🌈', '🤸', '🏊'];
+export const EXERCISE_IDEAS = ['散步', '跑步', '瑜伽', '重訓', '跳繩', '騎腳踏車', '游泳', '伸展'];
 
 /* ---------- 存檔 ---------- */
+export function defaultHabits() {
+  return { waterGoal: 1000, exFavs: [...EXERCISE_IDEAS], water: {}, exercise: {} };
+}
 export function defaultState() {
   return {
-    version: 1,
+    version: 2,
     tasks: {},        // id -> task
-    days: {},         // 'YYYY-MM-DD' -> { plan: [taskId], when: {taskId: {preset,time}}, where: {taskId: ''}, planned, completed: [], sticker, reviewed }
+    days: {},         // 'YYYY-MM-DD' -> { plan: [taskId], when: {taskId: {preset,time}}, where: {taskId: ''}, planned, completed: [] }
     collection: {},   // entryId -> { count, at }
     shards: 0,
     legend: { count: 0, granted: 0 }, // 累計完成的 3⭐ 任務數、已發放的傳說數
     favorite: null,
     lastBackup: 0,
+    habits: defaultHabits(),
     createdAt: Date.now(),
   };
 }
@@ -135,15 +124,51 @@ export function loadState() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return defaultState();
-    return migrate(JSON.parse(raw));
+    const s = migrate(JSON.parse(raw));
+    return s;
   } catch (e) {
     console.warn('讀取資料失敗', e);
     return defaultState();
   }
 }
+
+// 舊版（第一版 3D 模型）動物的稀有度
+function oldRarity(id) {
+  if (id.startsWith('legend_')) return 'legend';
+  if (/_(crown|party|bow|flower|halo)$/.test(id)) return 'epic';
+  if (/_(sakura|mint|lemon|lavender|sky|peach)$/.test(id)) return 'rare';
+  return 'common';
+}
+// 舊動物換成同稀有度的新動物（優先換到還沒擁有的）
+function migrateAnimals(s) {
+  const map = {};
+  const old = Object.keys(s.collection || {}).filter((id) => !CATALOG_BY_ID[id]);
+  if (!old.length) return;
+  const next = {};
+  for (const [id, v] of Object.entries(s.collection)) if (CATALOG_BY_ID[id]) next[id] = { ...v };
+  for (const id of old) {
+    const r = oldRarity(id);
+    const pool = CATALOG.filter((e) => e.rarity === r);
+    const free = pool.filter((e) => !next[e.id]);
+    const pickFrom = free.length ? free : pool;
+    const e = pickFrom[Math.floor(Math.random() * pickFrom.length)];
+    map[id] = e.id;
+    if (next[e.id]) next[e.id].count += s.collection[id].count;
+    else next[e.id] = { ...s.collection[id] };
+  }
+  s.collection = next;
+  if (s.favorite && map[s.favorite]) s.favorite = map[s.favorite];
+  for (const day of Object.values(s.days || {})) {
+    for (const c of day.completed || []) if (map[c.entryId]) c.entryId = map[c.entryId];
+  }
+}
 function migrate(s) {
   const d = defaultState();
-  return { ...d, ...s, legend: { ...d.legend, ...(s.legend || {}) } };
+  const out = { ...d, ...s, legend: { ...d.legend, ...(s.legend || {}) }, habits: { ...defaultHabits(), ...(s.habits || {}) } };
+  migrateAnimals(out);
+  if (out.favorite && !out.collection[out.favorite]) out.favorite = Object.keys(out.collection)[0] || null;
+  out.version = 2;
+  return out;
 }
 export function saveState(state) {
   try {
@@ -163,7 +188,7 @@ export function importState(obj) {
 
 export function getDay(state, key) {
   if (!state.days[key]) {
-    state.days[key] = { plan: [], when: {}, where: {}, planned: false, completed: [], sticker: null, reviewed: false };
+    state.days[key] = { plan: [], when: {}, where: {}, planned: false, completed: [], reviewed: false };
   }
   return state.days[key];
 }
@@ -285,16 +310,85 @@ export function completeTask(state, taskId, todayKey, rng = Math.random) {
   const day = getDay(state, todayKey);
   if (!day.plan.includes(taskId)) day.plan.push(taskId);
   day.completed.push({ taskId, title: task.title, entryId: rewards[0].entry.id, at: task.doneAt, difficulty: task.difficulty });
-
-  let sticker = null;
-  if (!day.sticker) {
-    sticker = STICKERS[Math.floor(rng() * STICKERS.length)];
-    day.sticker = sticker;
-  }
   saveState(state);
-  return { rewards, sticker, snapshot, task };
+  return { rewards, snapshot, task };
 }
 
 export function ownedCount(state, rarity) {
   return CATALOG.filter((e) => (!rarity || e.rarity === rarity) && state.collection[e.id]).length;
+}
+
+/* =========================================================
+   每日習慣：喝水、運動
+   完成時在對應月曆的當天格子貼一張貼紙；取消完成時貼紙會拿掉。
+   ========================================================= */
+const pickSticker = (list, rng = Math.random) => list[Math.floor(rng() * list.length)];
+
+export function waterDay(state, key) {
+  return state.habits.water[key] || { logs: [], sticker: null, goal: state.habits.waterGoal };
+}
+export function waterTotal(state, key) {
+  return waterDay(state, key).logs.reduce((a, l) => a + l.ml, 0);
+}
+export function waterGoalOf(state, key) {
+  const d = state.habits.water[key];
+  return (d && d.goal) || state.habits.waterGoal;
+}
+// 依目前喝水量更新貼紙；回傳新得到的貼紙（沒有就回傳 null）
+function syncWater(state, key) {
+  const d = state.habits.water[key];
+  if (!d) return null;
+  const done = d.logs.reduce((a, l) => a + l.ml, 0) >= (d.goal || state.habits.waterGoal);
+  if (done && !d.sticker) { d.sticker = pickSticker(WATER_STICKERS); return d.sticker; }
+  if (!done && d.sticker) d.sticker = null;
+  return null;
+}
+export function addWater(state, key, ml) {
+  const h = state.habits;
+  if (!h.water[key]) h.water[key] = { logs: [], sticker: null, goal: h.waterGoal };
+  h.water[key].logs.push({ ml, at: Date.now() });
+  return syncWater(state, key);
+}
+export function undoWater(state, key) {
+  const d = state.habits.water[key];
+  if (!d || !d.logs.length) return;
+  d.logs.pop();
+  syncWater(state, key);
+}
+export function setWaterGoal(state, ml, todayKey) {
+  state.habits.waterGoal = ml;
+  // 今天的目標也跟著改；過去的紀錄保持當時的目標
+  if (state.habits.water[todayKey]) state.habits.water[todayKey].goal = ml;
+  return syncWater(state, todayKey);
+}
+
+export function exerciseDay(state, key) {
+  return state.habits.exercise[key] || { items: [], sticker: null };
+}
+function syncExercise(state, key) {
+  const d = state.habits.exercise[key];
+  if (!d) return null;
+  const done = d.items.some((i) => i.done);
+  if (done && !d.sticker) { d.sticker = pickSticker(EXERCISE_STICKERS); return d.sticker; }
+  if (!done && d.sticker) d.sticker = null;
+  return null;
+}
+export function addExercise(state, key, name) {
+  const h = state.habits;
+  if (!h.exercise[key]) h.exercise[key] = { items: [], sticker: null };
+  h.exercise[key].items.push({ id: uid(), name, done: false });
+  return syncExercise(state, key);
+}
+export function toggleExercise(state, key, id) {
+  const d = state.habits.exercise[key];
+  const it = d && d.items.find((i) => i.id === id);
+  if (!it) return null;
+  it.done = !it.done;
+  return syncExercise(state, key);
+}
+export function deleteExercise(state, key, id) {
+  const d = state.habits.exercise[key];
+  if (!d) return;
+  d.items = d.items.filter((i) => i.id !== id);
+  syncExercise(state, key);
 }
