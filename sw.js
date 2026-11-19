@@ -1,6 +1,6 @@
 // Service Worker：在背景把 App 的檔案存到手機裡，讓 App 沒網路也能打開。
 // 每次更新 App 時，把 VERSION 改掉，手機就會下載新版本。
-const VERSION = 'v2.0.0';
+const VERSION = 'v2.1.0';
 const CACHE = `ypym-app-${VERSION}`;
 const FILES = [
   './',

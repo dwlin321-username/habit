@@ -92,7 +92,7 @@ function openSheet(build, { full = false, dismissable = true, onClose } = {}) {
 
 /* ---------- 共用小元件 ---------- */
 const starsHtml = (n) => `<span class="stars">${'★'.repeat(n)}<span class="off">${'★'.repeat(3 - n)}</span></span>`;
-const typeTag = (t) => (t.type === 'must' ? '<span class="tag must">🐸 必須做</span>' : '<span class="tag want">🌱 想做</span>');
+const typeTag = (t) => (t.type === 'must' ? '<span class="tag must">‼️ 必須做</span>' : '<span class="tag want">👍 想做</span>');
 function deadlineTag(t) {
   if (t.type !== 'must' || !t.deadline || t.status === 'done') return '';
   const d = D.daysBetween(today, t.deadline);
@@ -224,7 +224,7 @@ function taskCard(t, day, isLate) {
     <div class="row">${typeTag(t)}${starsHtml(t.difficulty)}${deadlineTag(t)}</div>
     <div class="title">${esc(t.title)}</div>
     <div class="meta">${when ? `<span>${D.whenLabel(when)}</span>` : ''}${where ? `<span>📍 ${esc(where)}</span>` : ''}${t.startedAt ? '<span>🏃 進行中</span>' : ''}</div>
-    <div class="firststep"><small>2 分鐘起步動作</small>🚀 ${esc(t.firstStep)}</div>
+    ${t.firstStep ? `<div class="firststep"><small>2 分鐘起步動作</small>🔥 ${esc(t.firstStep)}</div>` : ''}
     ${total ? `<ul class="steps">${t.steps.map((s) => `<li class="${s.done ? 'done' : ''}" data-act="step" data-id="${t.id}" data-step="${s.id}"><span class="check ${s.done ? 'on' : ''}">${s.done ? '✓' : ''}</span><span>${esc(s.text)}</span></li>`).join('')}</ul>` : ''}
     ${overdue ? '<div class="hint">過期了也沒關係，現在做也不遲！💗</div>' : ''}
     ${t.postpone >= 3 ? `<div class="hint">這件事好像有點卡住了～要不要把第一步再拆小一點？ <a data-act="edit" data-id="${t.id}" style="color:var(--pink-d);font-weight:800">拆小一點</a></div>` : ''}
@@ -286,8 +286,8 @@ function openLaunch(id) {
   openSheet((sh) => ({
     html: `<div class="launch">
       <div class="rocket">🚀</div>
-      <div class="only">現在只要做這一小步就好</div>
-      <div class="stepbig">${esc(t.firstStep)}</div>
+      <div class="only">${t.firstStep ? '現在只要做這一小步就好' : '現在只要開始做就好'}</div>
+      <div class="stepbig">${esc(t.firstStep || t.title)}</div>
       <p class="soft">只要 2 分鐘，做完想停也可以。<br>先動起來，其他的等等再說 🌷</p>
       <button class="btn go block" data-act="go">我開始了！</button>
       <div style="height:8px"></div>
@@ -472,8 +472,8 @@ function plannerReview(sh, P) {
 
 function plannerPick(sh, P, day, addMode) {
   const backlog = Object.values(S.tasks).filter((t) => t.status === 'todo' && !day.plan.includes(t.id));
-  const must = backlog.filter((t) => t.type === 'must').sort((a, b) => (a.deadline || '9999').localeCompare(b.deadline || '9999'));
-  const want = backlog.filter((t) => t.type === 'want').sort((a, b) => a.createdAt - b.createdAt);
+  const must = backlog.filter((t) => t.type === 'must').sort(byOrder);
+  const want = backlog.filter((t) => t.type === 'want').sort(byOrder);
   const row = (t) => `<button class="pick ${P.selected.has(t.id) ? 'on' : ''}" data-act="toggle" data-id="${t.id}">
       <span class="check ${P.selected.has(t.id) ? 'on' : ''}">${P.selected.has(t.id) ? '✓' : ''}</span>
       <span class="pt"><b>${esc(t.title)}</b><span>${starsHtml(t.difficulty)} ${deadlineTag(t)}</span></span>
@@ -483,8 +483,8 @@ function plannerPick(sh, P, day, addMode) {
     html: `<button class="close-x" data-act="close">✕</button>
       <h3>${addMode ? '再加一些任務 ✨' : '今天想完成哪些事？☀️'}</h3>
       <p class="lead">想選幾件都可以，點一下就能選。</p>
-      ${must.length ? `<h2>🐸 必須做</h2>${must.map(row).join('')}` : ''}
-      ${want.length ? `<h2>🌱 想做</h2>${want.map(row).join('')}` : ''}
+      ${must.length ? `<h2>‼️ 必須做</h2>${must.map(row).join('')}` : ''}
+      ${want.length ? `<h2>👍 想做</h2>${want.map(row).join('')}` : ''}
       ${!backlog.length ? '<div class="empty"><div class="big">📝</div><p>清單是空的～先新增一件任務吧！</p></div>' : ''}
       <button class="add-fab" data-act="new" style="margin-top:6px">＋ 新增任務</button>
       <div style="height:80px"></div>
@@ -511,7 +511,7 @@ function plannerWhen(sh, P, day) {
   const items = ids.map((id) => {
     const t = S.tasks[id], w = P.when[id];
     return `<div class="plan-item">
-      <b>${t.type === 'must' ? '🐸' : '🌱'} ${esc(t.title)}</b>
+      <b>${t.type === 'must' ? '‼️' : '👍'} ${esc(t.title)}</b>
       <div class="chips">
         ${D.WHEN_PRESETS.map((p) => `<button class="chip ${w && w.preset === p.id ? 'on' : ''}" data-act="preset" data-id="${id}" data-p="${p.id}">${p.label}</button>`).join('')}
         <input type="time" class="input time-in chip ${w && w.preset === 'custom' ? 'on' : ''}" data-time="${id}" value="${w && w.preset === 'custom' ? w.time : ''}" aria-label="自訂時間">
@@ -554,7 +554,6 @@ function plannerWhen(sh, P, day) {
 /* =========================================================
    新增／編輯任務
    ========================================================= */
-const FIRST_STEP_IDEAS = ['打開檔案', '把東西拿出來放桌上', '寫下第一句話', '穿上運動鞋', '打開課本到那一頁', '把要用的網頁打開', '走到書桌前坐下', '列出 3 個重點'];
 
 function openEditor(task, { onSaved, hint } = {}) {
   const isNew = !task;
@@ -569,18 +568,16 @@ function openEditor(task, { onSaved, hint } = {}) {
         <input class="input" data-f="title" value="${esc(d.title)}" placeholder="例如：寫期末報告、整理房間" maxlength="60"></div>
       <div class="field"><label>類型 <span class="req">*</span></label>
         <div class="seg">
-          <button data-act="type" data-v="must" class="${d.type === 'must' ? 'on' : ''}">🐸 必須做</button>
-          <button data-act="type" data-v="want" class="${d.type === 'want' ? 'on' : ''}">🌱 想做</button>
+          <button data-act="type" data-v="must" class="${d.type === 'must' ? 'on' : ''}">‼️ 必須做</button>
+          <button data-act="type" data-v="want" class="${d.type === 'want' ? 'on' : ''}">👍 想做</button>
         </div></div>
       <div class="field"><label>難度 <span class="req">*</span> <span class="opt">（越難，獎勵越稀有）</span></label>
         <div class="seg">
           ${[1, 2, 3].map((n) => `<button data-act="diff" data-v="${n}" class="${d.difficulty === n ? 'on' : ''}" ${locked ? 'disabled' : ''}>${'★'.repeat(n)}<br><small>${['輕鬆', '普通', '超難'][n - 1]}</small></button>`).join('')}
         </div>
         ${locked ? '<p class="help">任務已經開始，難度就鎖定囉 🔒</p>' : '<p class="help">★ 保底普通・★★ 保底稀有・★★★ 保底史詩，並累積傳說進度</p>'}</div>
-      <div class="field"><label>2 分鐘起步動作 <span class="req">*</span></label>
-        <input class="input" data-f="firstStep" value="${esc(d.firstStep)}" placeholder="小到不可能失敗的第一步" maxlength="60">
-        <div class="chips" style="margin-top:8px">${FIRST_STEP_IDEAS.map((x) => `<button class="chip" data-act="idea" data-v="${esc(x)}">${esc(x)}</button>`).join('')}</div>
-        <p class="help">越小越好！目標不是做完，而是「開始」。</p></div>
+      <div class="field"><label>2 分鐘起步動作 <span class="opt">（選填）</span></label>
+        <input class="input" data-f="firstStep" value="${esc(d.firstStep)}" placeholder="小到不可能失敗的第一步" maxlength="60"></div>
       ${d.type === 'must' ? `<div class="field"><label>截止日 <span class="opt">（選填）</span></label>
         <input class="input" type="date" data-f="deadline" value="${esc(d.deadline)}"></div>` : ''}
       <div class="field"><label>拆解步驟 <span class="opt">（選填，全部打勾才算完成）</span></label>
@@ -598,7 +595,6 @@ function openEditor(task, { onSaved, hint } = {}) {
       close: () => sh.close(),
       type: (b) => { d.type = b.dataset.v; sh.render(); },
       diff: (b) => { d.difficulty = Number(b.dataset.v); sh.render(); },
-      idea: (b) => { d.firstStep = b.dataset.v; sh.render(); },
       addstep: () => { d.steps.push({ id: D.uid(), text: '', done: false }); sh.render(); sh.el.querySelector(`[data-step="${d.steps.length - 1}"]`)?.focus(); },
       delstep: (b) => { d.steps.splice(Number(b.dataset.i), 1); sh.render(); },
       delete: () => {
@@ -611,7 +607,6 @@ function openEditor(task, { onSaved, hint } = {}) {
         d.title = d.title.trim(); d.firstStep = d.firstStep.trim(); d.where = (d.where || '').trim();
         d.steps = d.steps.map((s) => ({ ...s, text: s.text.trim() })).filter((s) => s.text);
         if (!d.title) { err = '請填寫任務名稱'; sh.render(); return; }
-        if (!d.firstStep) { err = '請寫一個 2 分鐘起步動作（可以點下面的建議）'; sh.render(); return; }
         if (d.type !== 'must') d.deadline = '';
         S.tasks[d.id] = isNew ? d : { ...S.tasks[d.id], ...d, startedAt: S.tasks[d.id].startedAt, status: S.tasks[d.id].status };
         save(); sh.close(); render();
@@ -692,6 +687,128 @@ function habitActions() {
 }
 
 /* =========================================================
+   清單：長按拖曳排序、向左滑刪除（類似 iPhone 備忘錄）
+   ========================================================= */
+const byOrder = (a, b) => (a.order ?? a.createdAt) - (b.order ?? b.createdAt);
+let suppressClick = false;
+const suppress = () => { suppressClick = true; setTimeout(() => { suppressClick = false; }, 80); };
+
+function deleteTaskWithUndo(id) {
+  const t = S.tasks[id];
+  if (!t) return;
+  const backup = JSON.parse(JSON.stringify(t));
+  const inPlans = Object.entries(S.days).filter(([, d]) => d.plan.includes(id)).map(([k, d]) => [k, d.plan.indexOf(id)]);
+  delete S.tasks[id];
+  for (const day of Object.values(S.days)) day.plan = day.plan.filter((x) => x !== id);
+  save(); render();
+  toast(`已刪除「${backup.title}」`, {
+    label: '復原',
+    fn: () => {
+      S.tasks[id] = backup;
+      for (const [k, i] of inPlans) if (S.days[k]) S.days[k].plan.splice(i, 0, id);
+      save(); render(); toast('已復原');
+    },
+  }, 5000);
+}
+
+function bindListGestures(root, canDrag) {
+  const list = root.querySelector('.tlist');
+  if (!list) return;
+  const OPEN = 92;           // 滑開後露出刪除鈕的寬度
+  const LONG_PRESS = 420;    // 長按多久開始拖曳（毫秒）
+  let st = null, openRow = null;
+  const closeOpen = () => {
+    if (!openRow) return;
+    openRow.querySelector('.card').style.transform = '';
+    openRow.classList.remove('open');
+    openRow = null;
+  };
+  // 拖曳或滑動時，不讓畫面跟著捲動
+  list.addEventListener('touchmove', (e) => { if (st && (st.mode === 'drag' || st.mode === 'swipe')) e.preventDefault(); }, { passive: false });
+  list.addEventListener('contextmenu', (e) => e.preventDefault());
+
+  const startDrag = () => {
+    if (!st || st.mode !== 'pending') return;
+    st.mode = 'drag';
+    closeOpen();
+    st.rows = [...list.querySelectorAll('.swipe')];
+    st.from = st.to = st.rows.indexOf(st.row);
+    st.rects = st.rows.map((r) => r.getBoundingClientRect());
+    st.h = st.rects[st.from].height + 12;
+    st.row.classList.add('dragging');
+    try { st.row.setPointerCapture(st.pid); } catch { /* 忽略 */ }
+    if (navigator.vibrate) navigator.vibrate(10);
+  };
+  const moveDrag = (y) => {
+    const dy = y - st.y0;
+    st.row.style.transform = `translateY(${dy}px) scale(1.03)`;
+    const r0 = st.rects[st.from], cy = r0.top + r0.height / 2 + dy;
+    let to = st.from;
+    st.rects.forEach((r, i) => {
+      const mid = r.top + r.height / 2;
+      if (i < st.from && cy < mid) to = Math.min(to, i);
+      if (i > st.from && cy > mid) to = Math.max(to, i);
+    });
+    st.to = to;
+    st.rows.forEach((r, i) => {
+      if (i === st.from) return;
+      let s = 0;
+      if (st.from < to && i > st.from && i <= to) s = -st.h;
+      if (st.from > to && i < st.from && i >= to) s = st.h;
+      r.style.transform = s ? `translateY(${s}px)` : '';
+    });
+  };
+  const endDrag = () => {
+    const ids = st.rows.map((r) => r.dataset.id);
+    const [moved] = ids.splice(st.from, 1);
+    ids.splice(st.to, 0, moved);
+    ids.forEach((id, i) => { if (S.tasks[id]) S.tasks[id].order = i; });
+    suppress();
+    if (st.to !== st.from) { save(); toast('順序已更新'); }
+    render();
+  };
+
+  list.addEventListener('pointerdown', (e) => {
+    const row = e.target.closest('.swipe');
+    if (!row || e.target.closest('.swipe-del')) return;
+    if (openRow) { const was = openRow; closeOpen(); if (was === row) { suppress(); return; } }
+    st = { row, card: row.querySelector('.card'), x0: e.clientX, y0: e.clientY, pid: e.pointerId, mode: 'pending', dx: 0 };
+    if (canDrag) st.timer = setTimeout(startDrag, LONG_PRESS);
+  });
+  list.addEventListener('pointermove', (e) => {
+    if (!st || e.pointerId !== st.pid) return;
+    const dx = e.clientX - st.x0, dy = e.clientY - st.y0;
+    if (st.mode === 'pending' && (Math.abs(dx) > 8 || Math.abs(dy) > 8)) {
+      clearTimeout(st.timer);
+      if (Math.abs(dx) > Math.abs(dy) && dx < 0) {
+        st.mode = 'swipe';
+        st.card.style.transition = 'none';
+        try { st.row.setPointerCapture(st.pid); } catch { /* 忽略 */ }
+      } else { st = null; return; }
+    }
+    if (st.mode === 'swipe') {
+      st.dx = Math.min(0, dx);
+      st.card.style.transform = `translateX(${st.dx}px)`;
+    } else if (st.mode === 'drag') moveDrag(e.clientY);
+  });
+  const end = () => {
+    if (!st) return;
+    clearTimeout(st.timer);
+    const s = st;
+    st = null;
+    if (s.mode === 'swipe') {
+      s.card.style.transition = '';
+      suppress();
+      if (s.dx < -s.row.offsetWidth * 0.6) { deleteTaskWithUndo(s.row.dataset.id); return; }
+      if (s.dx < -OPEN / 2) { s.card.style.transform = `translateX(-${OPEN}px)`; s.row.classList.add('open'); openRow = s.row; }
+      else s.card.style.transform = '';
+    } else if (s.mode === 'drag') { st = s; endDrag(); st = null; }
+  };
+  list.addEventListener('pointerup', end);
+  list.addEventListener('pointercancel', end);
+}
+
+/* =========================================================
    清單
    ========================================================= */
 function viewHabitList(segHtml) {
@@ -749,8 +866,8 @@ function viewList() {
   const f = listState.filter;
   const cntAll = (type) => Object.values(S.tasks).filter((t) => t.status === 'todo' && t.type === type).length;
   const segHtml = `<div class="seg seg4" style="margin-bottom:14px">
-      <button data-act="f" data-v="must" class="${f === 'must' ? 'on' : ''}">🐸 必須做 ${cntAll('must')}</button>
-      <button data-act="f" data-v="want" class="${f === 'want' ? 'on' : ''}">🌱 想做 ${cntAll('want')}</button>
+      <button data-act="f" data-v="must" class="${f === 'must' ? 'on' : ''}">‼️ 必須做 ${cntAll('must')}</button>
+      <button data-act="f" data-v="want" class="${f === 'want' ? 'on' : ''}">👍 想做 ${cntAll('want')}</button>
       <button data-act="f" data-v="habit" class="${f === 'habit' ? 'on' : ''}">💧 習慣</button>
       <button data-act="f" data-v="done" class="${f === 'done' ? 'on' : ''}">✅ 完成</button>
     </div>`;
@@ -759,19 +876,20 @@ function viewList() {
   let tasks = Object.values(S.tasks);
   if (f === 'done') tasks = tasks.filter((t) => t.status === 'done').sort((a, b) => b.doneAt - a.doneAt).slice(0, 60);
   else {
-    tasks = tasks.filter((t) => t.status === 'todo' && t.type === f);
-    tasks.sort(f === 'must' ? (a, b) => (a.deadline || '9999').localeCompare(b.deadline || '9999') : (a, b) => a.createdAt - b.createdAt);
+    tasks = tasks.filter((t) => t.status === 'todo' && t.type === f).sort(byOrder);
   }
-  const cards = tasks.map((t) => `<div class="card ${t.type} ${t.status === 'done' ? 'done' : ''}" data-act="edit" data-id="${t.id}">
+  const cards = tasks.map((t) => `<div class="swipe" data-id="${t.id}">
+    <button class="swipe-del" data-act="swipe-del" data-id="${t.id}">🗑️<br>刪除</button>
+    <div class="card ${t.type} ${t.status === 'done' ? 'done' : ''}" data-act="edit" data-id="${t.id}">
       <div class="row">${starsHtml(t.difficulty)}${deadlineTag(t)}${todayPlan.includes(t.id) && t.status === 'todo' ? '<span class="tag soon">今天</span>' : ''}</div>
       <div class="title">${esc(t.title)}</div>
-      <div class="meta"><span>🚀 ${esc(t.firstStep)}</span>${t.steps.length ? `<span>📝 ${t.steps.length} 個步驟</span>` : ''}${t.status === 'done' ? `<span>✅ ${new Date(t.doneAt).toLocaleDateString('zh-TW')}</span>` : ''}</div>
-    </div>`).join('');
+      <div class="meta">${t.firstStep ? `<span>🔥 ${esc(t.firstStep)}</span>` : ''}${t.steps.length ? `<span>📝 ${t.steps.length} 個步驟</span>` : ''}${t.status === 'done' ? `<span>✅ ${new Date(t.doneAt).toLocaleDateString('zh-TW')}</span>` : ''}</div>
+    </div></div>`).join('');
   const html = `
     <div class="top"><div class="brand">任務清單 📋</div></div>
     ${segHtml}
     ${f !== 'done' ? '<button class="add-fab" data-act="new" style="margin-bottom:14px">＋ 新增任務</button>' : ''}
-    ${cards || `<div class="empty"><div class="big">${f === 'done' ? '🏆' : '✨'}</div><p>${f === 'done' ? '完成的任務會出現在這裡' : '想到什麼就先丟進來，<br>每天再挑要做的！'}</p></div>`}
+    ${cards ? `<div class="tlist">${cards}</div><p class="muted small" style="text-align:center">${f === 'done' ? '向左滑可以刪除' : '長按可以拖曳排序・向左滑可以刪除'}</p>` : `<div class="empty"><div class="big">${f === 'done' ? '🏆' : '✨'}</div><p>${f === 'done' ? '完成的任務會出現在這裡' : '想到什麼就先丟進來，<br>每天再挑要做的！'}</p></div>`}
   `;
   return {
     html,
@@ -779,7 +897,9 @@ function viewList() {
       f: (b) => { listState.filter = b.dataset.v; render(); },
       new: () => openEditor(null, { onSaved: (t) => { listState.filter = t.type; render(); } }),
       edit: (b) => { const t = S.tasks[b.dataset.id]; if (t && t.status === 'todo') openEditor(t); },
+      'swipe-del': (b) => deleteTaskWithUndo(b.dataset.id),
     },
+    after: (root) => bindListGestures(root, f !== 'done'),
   };
 }
 
@@ -981,7 +1101,7 @@ function viewSettings() {
     <div class="set-group">
       <button class="set-row danger" data-act="reset"><span class="si">🧹</span><span class="st"><b>清除所有資料</b><span>任務、動物、貼紙都會刪除，無法復原</span></span></button>
     </div>
-    <p class="muted small" style="text-align:center">要拚要猛 v2.0</p>
+    <p class="muted small" style="text-align:center">要拚要猛 v2.1</p>
     <input type="file" id="import-file" accept="application/json,.json" hidden>
   `;
   return {
@@ -1050,6 +1170,7 @@ function render() {
   if (tab !== 'today' && homeStage) homeStage.stop();
 }
 $('#view').addEventListener('click', (e) => {
+  if (suppressClick) { suppressClick = false; return; }
   const b = e.target.closest('[data-act]');
   if (!b) return;
   const fn = viewActions[b.dataset.act];

@@ -34,15 +34,15 @@ export function uid() {
 
 /* ---------- 何時 ---------- */
 export const WHEN_PRESETS = [
-  { id: 'morning', label: '🌅 早上', time: '09:00' },
-  { id: 'noon', label: '🍱 中午', time: '12:00' },
-  { id: 'afternoon', label: '☕ 下午', time: '15:00' },
-  { id: 'evening', label: '🌙 晚上', time: '20:00' },
+  { id: 'morning', label: '早上', time: '09:00' },
+  { id: 'noon', label: '中午', time: '12:00' },
+  { id: 'afternoon', label: '下午', time: '15:00' },
+  { id: 'evening', label: '晚上', time: '20:00' },
 ];
 export function whenLabel(when) {
   if (!when) return '';
   const p = WHEN_PRESETS.find((x) => x.id === when.preset);
-  return p ? `${p.label} ${when.time}` : `⏰ ${when.time}`;
+  return p ? `${p.label} ${when.time}` : when.time;
 }
 
 /* ---------- 稀有度與圖鑑（低多邊形動物） ---------- */
@@ -198,7 +198,7 @@ export function newTask(fields) {
   return {
     id: uid(),
     title: '',
-    type: 'must',       // 'must' 🐸 必須做 / 'want' 🌱 想做
+    type: 'must',       // 'must' ‼️ 必須做 / 'want' 👍 想做
     difficulty: 1,      // 1~3 ⭐
     firstStep: '',
     steps: [],          // [{id, text, done}]
@@ -209,6 +209,7 @@ export function newTask(fields) {
     doneAt: 0,
     postpone: 0,
     createdAt: Date.now(),
+    order: Date.now(),  // 清單裡的排列順序（可長按拖曳調整）
     ...fields,
   };
 }
