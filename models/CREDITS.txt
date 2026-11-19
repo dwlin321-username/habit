@@ -1,0 +1,4 @@
+3D models: "Textured Cute Monster Pack" (Cute Animated Monsters, Aug 2020) by Quaternius
+https://quaternius.com — License: CC0 1.0 Universal (Public Domain). Credit not required; given with thanks.
+Converted from FBX to GLB with three.js (textures resized to JPEG, animations trimmed).
+three.js — MIT License (see vendor/three/LICENSE).

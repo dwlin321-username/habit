@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+  <title>要拚要猛</title>
+  <meta name="description" content="用科學方法打敗拖延，完成任務收集 3D 可愛動物">
+  <meta name="theme-color" content="#FFF3F8" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#221D2E" media="(prefers-color-scheme: dark)">
+  <!-- 讓 iPhone「加入主畫面」後像 App 一樣全螢幕開啟 -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="要拚要猛">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <link rel="apple-touch-icon" href="icons/icon-180.png">
+  <link rel="icon" type="image/png" href="icons/icon-192.png">
+  <link rel="manifest" href="manifest.json">
+  <link rel="stylesheet" href="css/style.css">
+  <!-- import map：告訴瀏覽器 'three' 這個名字對應到哪個檔案 -->
+  <script type="importmap">{ "imports": { "three": "./vendor/three/three.module.min.js" } }</script>
+</head>
+<body>
+  <div id="app">
+    <main id="view" class="view"></main>
+    <nav class="tabbar" id="tabbar">
+      <button data-tab="today" class="on"><span class="ti">🔥</span><span>今天</span></button>
+      <button data-tab="list"><span class="ti">📋</span><span>清單</span></button>
+      <button data-tab="calendar"><span class="ti">📅</span><span>月曆</span></button>
+      <button data-tab="zoo"><span class="ti">🐾</span><span>圖鑑</span></button>
+      <button data-tab="settings"><span class="ti">⚙️</span><span>設定</span></button>
+    </nav>
+  </div>
+  <div id="sheet-root"></div>
+  <div id="toast" class="toast" hidden></div>
+  <noscript>請開啟 JavaScript 才能使用「要拚要猛」。</noscript>
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
