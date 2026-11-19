@@ -43,7 +43,7 @@
 <body>
   <main>
     <h1>🐾 低多邊形動物預覽</h1>
-    <p class="lead">普通 20・稀有 15・史詩 10・傳說 5，全部用程式捏出來。點一下可以 360° 轉動牠。</p>
+    <p class="lead" id="lead">全部用程式捏出來。點一下可以 360° 轉動牠。</p>
     <p class="prog" id="prog">準備中…</p>
     <div id="list"></div>
   </main>
@@ -63,6 +63,7 @@
 
     const RAR = { common: ['普通', '#BFC3D9'], rare: ['稀有', '#7CC4FF'], epic: ['史詩', '#B48CFF'], legend: ['傳說', '#FFC93C'] };
     const list = document.getElementById('list');
+    document.getElementById('lead').textContent = Object.keys(RAR).map((r) => `${RAR[r][0]} ${LP_CATALOG.filter((e) => e.rarity === r).length}`).join('・') + '，全部用程式捏出來。點一下可以 360° 轉動牠。';
     list.innerHTML = Object.keys(RAR).map((r) => {
       const items = LP_CATALOG.filter((e) => e.rarity === r);
       return `<h2><span class="dot" style="background:${RAR[r][1]}"></span>${RAR[r][0]} <small>${items.length} 隻</small></h2>

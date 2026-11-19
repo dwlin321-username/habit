@@ -6,13 +6,13 @@ import * as THREE from 'three';
    圖鑑清單：普通 20、稀有 15、史詩 10、傳說 5
    ========================================================= */
 export const LP_SPECIES = {
-  shiba: '柴犬', cat: '三花貓', rabbit: '白兔', panda: '熊貓', bear: '小熊',
+  shiba: '柴犬', pom: '白色狐狸犬', cat: '三花貓', rabbit: '白兔', panda: '熊貓', bear: '小熊',
   pig: '小豬', chick: '小雞', penguin: '企鵝', fox: '狐狸', frog: '青蛙',
   hamster: '倉鼠', koala: '無尾熊', sheep: '綿羊', cow: '乳牛', owl: '貓頭鷹',
   duck: '鴨鴨', hedgehog: '刺蝟', seal: '海豹', turtle: '烏龜', capybara: '水豚',
 };
 const RARE = [
-  ['shiba', '圍巾柴犬', ['scarf']], ['cat', '蝴蝶結貓咪', ['bow']], ['rabbit', '草莓帽兔兔', ['strawberryHat']],
+  ['shiba', '圍巾柴犬', ['scarf']], ['pom', '蝴蝶結狐狸犬', ['bow:#E5484D']], ['cat', '蝴蝶結貓咪', ['bow']], ['rabbit', '草莓帽兔兔', ['strawberryHat']],
   ['panda', '竹子熊貓', ['bamboo']], ['bear', '蜂蜜小熊', ['honey']], ['pig', '花圈小豬', ['flowerCrown']],
   ['chick', '蛋殼小雞', ['eggshell']], ['penguin', '毛帽企鵝', ['beanie']], ['fox', '眼鏡狐狸', ['glasses']],
   ['frog', '荷葉青蛙', ['lotus']], ['hamster', '瓜子倉鼠', ['seed']], ['koala', '樹葉無尾熊', ['eucalyptus']],
@@ -20,6 +20,7 @@ const RARE = [
 ];
 const EPIC = [
   ['shiba', '騎士柴犬', ['knightHelmet', 'cape:#E5484D', 'shield']],
+  ['pom', '魔法師狐狸犬', ['wizardHat', 'cape:#6E5BC8', 'starWand']],
   ['rabbit', '公主兔兔', ['crown', 'cape:#B48CFF', 'starWand']],
   ['fox', '偵探狐狸', ['detectiveHat', 'bowtie', 'magnifier']],
   ['owl', '魔法師貓頭鷹', ['wizardHat', 'starWand']],
@@ -248,6 +249,24 @@ const SP = {
     earTri(A, c.fur, '#FFD9C7', { tilt: 0.3 });
     const t = tailGroup(A, -0.6);
     torus(t, c.fur, 0.13, 0.065, 5, 10, Math.PI * 1.6, [0, 0.12, -0.05], [0, Math.PI / 2, 0.4]);
+    return A;
+  },
+  pom(c) {
+    c = { fur: '#FFFFFF', fluff: '#FAF7FF', cream: '#FFF3E4', ...c };
+    const A = chibi({ body: c.fur, arms: c.fur, feet: c.fur });
+    // 蓬蓬的毛領（圍在臉的外圈和胸前）
+    for (let i = 0; i < 14; i++) {
+      const a = (i / 14) * Math.PI * 2;
+      if (Math.sin(a) > -0.05) continue;
+      ball(A.head, c.fluff, 0.15, [Math.cos(a) * 0.5, A.H.cy + Math.sin(a) * 0.4 - 0.02, -0.04], [1, 1, 0.9]);
+    }
+    for (const s of [-1, 1]) ball(A.head, c.fluff, 0.14, [s * 0.52, A.H.cy + 0.02, -0.06], [0.9, 1.1, 0.9]);
+    for (const [x, y, z, r] of [[0, 0.72, 0.3, 0.2], [0.2, 0.7, 0.24, 0.17], [-0.2, 0.7, 0.24, 0.17], [0.12, 0.55, 0.36, 0.15], [-0.12, 0.55, 0.36, 0.15]]) ball(A.body, c.fluff, r, [x, y, z]);
+    face(A, { muzzle: c.cream, muzzleS: [1.05, 0.85, 0.9], nose: '#2B2233', eyeR: 0.075 });
+    earTri(A, c.fur, '#FFC2D4', { h: 0.3, r: 0.14, x: 0.27, tilt: 0.25, z: 0.02 });
+    // 捲在背上的大蓬尾巴
+    const t = tailGroup(A, -0.2);
+    for (const [y, z, r] of [[0.12, -0.02, 0.17], [0.3, 0.02, 0.19], [0.45, 0.12, 0.17], [0.5, 0.27, 0.14]]) ball(t, c.fluff, r, [0, y, z]);
     return A;
   },
   cat(c) {
@@ -526,10 +545,10 @@ const ACC = {
     box(g, '#E5484D', 0.13, 0.28, 0.07, [0.16, -0.14, a.r * 0.82], [0, 0, 0.25]);
     for (let i = 0; i < 3; i++) box(g, '#FFFFFF', 0.13, 0.025, 0.075, [0.19 - 0.015 * i, -0.06 - i * 0.08, a.r * 0.82 + 0.003], [0, 0, 0.25]);
   },
-  bow(A) {
+  bow(A, color) {
     const t = A.anchor.top, g = grp(t.parent, [t.pos[0] + t.r * 0.45, t.pos[1] - 0.06, 0.12], [0, 0, -0.45]);
-    for (const s of [-1, 1]) cone(g, '#FF7FB2', 0.13, 0.24, 6, [s * 0.12, 0, 0], [0, 0, (s * Math.PI) / 2]);
-    ball(g, '#FF5E9C', 0.07, [0, 0, 0.02]);
+    for (const s of [-1, 1]) cone(g, color || '#FF7FB2', 0.13, 0.24, 6, [s * 0.12, 0, 0], [0, 0, (s * Math.PI) / 2]);
+    ball(g, color ? '#C93A40' : '#FF5E9C', 0.07, [0, 0, 0.02]);
   },
   strawberryHat(A) {
     const g = at(A, 'top');
