@@ -5,7 +5,7 @@
 
 ## 怎麼放到 iPhone 主畫面
 
-1. 用 **Safari** 打開網址（例如 `https://你的帳號.github.io/yao-pin-yao-meng/`）
+1. 用 **Safari** 打開網址：`https://dwlin321-username.github.io/habit/`
 2. 點下方的「分享」按鈕 → 選「加入主畫面」
 3. 之後都從主畫面的圖示打開
 
