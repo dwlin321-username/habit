@@ -15,7 +15,9 @@
   <link rel="apple-touch-icon" href="icons/icon-180.png">
   <link rel="icon" type="image/png" href="icons/icon-192.png">
   <link rel="manifest" href="manifest.json">
-  <link rel="stylesheet" href="css/style.css">
+  <!-- 固定淺色：不管 iPhone 是否開深色模式，都用淡黃＋白色 -->
+  <style>:root, html, body { color-scheme: light only; background: #FFFBEA; color: #4A4032; }</style>
+  <link rel="stylesheet" href="css/style.css?v=2.2">
   <!-- import map：告訴瀏覽器 'three' 這個名字對應到哪個檔案 -->
   <script type="importmap">{ "imports": { "three": "./vendor/three/three.module.min.js" } }</script>
 </head>
@@ -33,6 +35,6 @@
   <div id="sheet-root"></div>
   <div id="toast" class="toast" hidden></div>
   <noscript>請開啟 JavaScript 才能使用「要拚要猛」。</noscript>
-  <script type="module" src="js/app.js"></script>
+  <script type="module" src="js/app.js?v=2.2"></script>
 </body>
 </html>

@@ -231,7 +231,7 @@ function taskCard(t, day, isLate) {
     <div class="actions">
       ${t.startedAt
         ? `<button class="btn ok" data-act="finish" data-id="${t.id}" ${left ? 'disabled' : ''}>${left ? `還有 ${left} 個步驟` : '✅ 完成！'}</button>`
-        : `<button class="btn go" data-act="start" data-id="${t.id}">🚀 開始</button>`}
+        : `<button class="btn go" data-act="start" data-id="${t.id}">🔥 開始</button>`}
     </div>
   </div>`;
 }
@@ -285,7 +285,7 @@ function openLaunch(id) {
   if (!t) return;
   openSheet((sh) => ({
     html: `<div class="launch">
-      <div class="rocket">🚀</div>
+      <div class="rocket">🔥</div>
       <div class="only">${t.firstStep ? '現在只要做這一小步就好' : '現在只要開始做就好'}</div>
       <div class="stepbig">${esc(t.firstStep || t.title)}</div>
       <p class="soft">只要 2 分鐘，做完想停也可以。<br>先動起來，其他的等等再說 🌷</p>
@@ -1101,7 +1101,7 @@ function viewSettings() {
     <div class="set-group">
       <button class="set-row danger" data-act="reset"><span class="si">🧹</span><span class="st"><b>清除所有資料</b><span>任務、動物、貼紙都會刪除，無法復原</span></span></button>
     </div>
-    <p class="muted small" style="text-align:center">要拚要猛 v2.1</p>
+    <p class="muted small" style="text-align:center">要拚要猛 v2.2</p>
     <input type="file" id="import-file" accept="application/json,.json" hidden>
   `;
   return {
@@ -1232,16 +1232,15 @@ if ('serviceWorker' in navigator && location.protocol !== 'file:') {
     refreshing = true;
     location.reload();
   });
-  navigator.serviceWorker.register('sw.js').then((reg) => {
-    const offer = (w) => toast('有新版本可以更新 ✨', { label: '更新', fn: () => w.postMessage('skipWaiting') }, 15000);
-    if (reg.waiting && navigator.serviceWorker.controller) offer(reg.waiting);
+  navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).then((reg) => {
+    // 新版會自動安裝並切換（切換後頁面自動重新整理）；萬一卡在等待中，直接叫它接手
+    if (reg.waiting) reg.waiting.postMessage('skipWaiting');
     reg.addEventListener('updatefound', () => {
       const w = reg.installing;
-      w && w.addEventListener('statechange', () => {
-        if (w.state === 'installed' && navigator.serviceWorker.controller) offer(w);
-      });
+      w && w.addEventListener('statechange', () => { if (w.state === 'installed') w.postMessage('skipWaiting'); });
     });
-    setInterval(() => reg.update().catch(() => {}), 3600e3);
+    reg.update().catch(() => {});
+    document.addEventListener('visibilitychange', () => { if (!document.hidden) reg.update().catch(() => {}); });
   }).catch((e) => console.warn('SW 註冊失敗', e));
 }
 
